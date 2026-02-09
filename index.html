@@ -31,6 +31,7 @@
             <input
               id="city-input"
               type="text"
+              name="location_query"
               placeholder="Search city, town, or village"
               aria-label="Search location"
               role="combobox"
@@ -38,6 +39,10 @@
               aria-expanded="false"
               aria-controls="city-suggestions"
               autocomplete="off"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
+              enterkeyhint="search"
               required
             />
             <ul
@@ -77,10 +82,6 @@
               </button>
             </div>
           </div>
-        </div>
-        <div class="quick-cities">
-          <span class="quick-label">Recent searches</span>
-          <div id="recent-cities" class="chip-list" aria-live="polite"></div>
         </div>
       </header>
 

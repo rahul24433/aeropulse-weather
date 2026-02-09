@@ -1,15 +1,13 @@
 const DEFAULT_CITY = "Bettiah";
 const HOURLY_WINDOW = 12;
 const DAILY_WINDOW = 14;
-const RECENT_CITY_LIMIT = 6;
 const AUTO_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
-const SUGGESTION_MIN_CHARS = 2;
+const SUGGESTION_MIN_CHARS = 1;
 const SUGGESTION_LIMIT = 8;
 const SUGGESTION_DEBOUNCE_MS = 260;
 
 const STORAGE_KEYS = {
   unit: "aeropulse_unit",
-  recentCities: "aeropulse_recent_cities",
   lastLocation: "aeropulse_last_location",
 };
 
@@ -70,7 +68,6 @@ const refs = {
   locationButton: document.getElementById("location-btn"),
   refreshButton: document.getElementById("refresh-btn"),
   suggestionList: document.getElementById("city-suggestions"),
-  recentCities: document.getElementById("recent-cities"),
   unitButtons: Array.from(document.querySelectorAll("[data-unit-toggle]")),
   connectionPill: document.getElementById("connection-pill"),
   updatedAt: document.getElementById("updated-at"),
@@ -111,7 +108,6 @@ const appState = {
   locationLabel: "",
   timezoneTag: "local",
   lastCoords: null,
-  recentCities: [],
   activeRequestId: 0,
   activeSuggestionRequestId: 0,
   isBusy: false,
@@ -161,9 +157,6 @@ function setBusyState(isBusy) {
   refs.locationButton.disabled = isBusy;
   refs.refreshButton.disabled = isBusy || !appState.lastCoords;
   refs.unitButtons.forEach((button) => {
-    button.disabled = isBusy;
-  });
-  refs.recentCities.querySelectorAll(".chip-btn").forEach((button) => {
     button.disabled = isBusy;
   });
   refs.suggestionList.querySelectorAll(".suggestion-btn").forEach((button) => {
@@ -369,10 +362,6 @@ function saveUnitPreference() {
   writeStoredJson(STORAGE_KEYS.unit, appState.unit);
 }
 
-function saveRecentCities() {
-  writeStoredJson(STORAGE_KEYS.recentCities, appState.recentCities);
-}
-
 function saveLastLocation() {
   if (!appState.lastCoords) {
     return;
@@ -390,14 +379,6 @@ function loadSavedState() {
     appState.unit = storedUnit;
   }
 
-  const storedRecent = readStoredJson(STORAGE_KEYS.recentCities, []);
-  if (Array.isArray(storedRecent)) {
-    appState.recentCities = storedRecent
-      .map((city) => normalizeCityText(city))
-      .filter(Boolean)
-      .slice(0, RECENT_CITY_LIMIT);
-  }
-
   const storedLocation = readStoredJson(STORAGE_KEYS.lastLocation, null);
   if (
     storedLocation &&
@@ -410,40 +391,6 @@ function loadSavedState() {
     };
     appState.locationLabel = normalizeCityText(storedLocation.label) || "";
   }
-}
-
-function renderRecentCities() {
-  refs.recentCities.innerHTML = "";
-  if (!appState.recentCities.length) {
-    const empty = document.createElement("span");
-    empty.className = "chip-placeholder";
-    empty.textContent = "No recent searches yet";
-    refs.recentCities.append(empty);
-    return;
-  }
-
-  appState.recentCities.forEach((city) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "chip-btn";
-    button.dataset.city = city;
-    button.textContent = city;
-    button.disabled = appState.isBusy;
-    refs.recentCities.append(button);
-  });
-}
-
-function addRecentCity(city) {
-  const normalized = normalizeCityText(city);
-  if (!normalized) {
-    return;
-  }
-  const deduped = appState.recentCities.filter(
-    (storedCity) => storedCity.toLowerCase() !== normalized.toLowerCase()
-  );
-  appState.recentCities = [normalized, ...deduped].slice(0, RECENT_CITY_LIMIT);
-  saveRecentCities();
-  renderRecentCities();
 }
 
 async function geocodeCity(query) {
@@ -580,7 +527,7 @@ async function searchLocationSuggestions(query) {
   }
 
   const openMeteoResults = await fetchOpenMeteoLocations(normalizedQuery, SUGGESTION_LIMIT);
-  if (openMeteoResults.length >= SUGGESTION_LIMIT || normalizedQuery.length < 3) {
+  if (openMeteoResults.length >= SUGGESTION_LIMIT) {
     return openMeteoResults.slice(0, SUGGESTION_LIMIT);
   }
 
@@ -588,15 +535,25 @@ async function searchLocationSuggestions(query) {
   return dedupeLocations([...openMeteoResults, ...fallbackResults], SUGGESTION_LIMIT);
 }
 
-function renderSuggestions(suggestions) {
+function renderSuggestions(suggestions, options = {}) {
+  const { emptyMessage = "" } = options;
   appState.suggestions = suggestions;
   appState.activeSuggestionIndex = -1;
   refs.suggestionList.innerHTML = "";
   refs.cityInput.removeAttribute("aria-activedescendant");
 
   if (!suggestions.length) {
-    refs.suggestionList.hidden = true;
-    refs.cityInput.setAttribute("aria-expanded", "false");
+    if (!emptyMessage) {
+      refs.suggestionList.hidden = true;
+      refs.cityInput.setAttribute("aria-expanded", "false");
+      return;
+    }
+    const item = document.createElement("li");
+    item.className = "suggestion-empty";
+    item.textContent = emptyMessage;
+    refs.suggestionList.append(item);
+    refs.suggestionList.hidden = false;
+    refs.cityInput.setAttribute("aria-expanded", "true");
     return;
   }
 
@@ -699,10 +656,12 @@ function queueSuggestionLookup() {
       if (normalizeCityText(refs.cityInput.value) !== query) {
         return;
       }
-      renderSuggestions(suggestions);
+      renderSuggestions(suggestions, {
+        emptyMessage: `No matches for "${query}". Try district or state.`,
+      });
     } catch {
       if (requestId === appState.activeSuggestionRequestId) {
-        hideSuggestions(false);
+        renderSuggestions([], { emptyMessage: "Could not load suggestions right now." });
       }
     } finally {
       if (requestId === appState.activeSuggestionRequestId) {
@@ -1143,9 +1102,6 @@ async function refreshByCity(cityInputValue, options = {}) {
     readyText: options.readyText || "Live stream",
   });
   refs.cityInput.value = location.cityName;
-  if (options.saveRecent !== false) {
-    addRecentCity(location.cityName);
-  }
 }
 
 function getDevicePosition() {
@@ -1193,7 +1149,6 @@ function startAutoRefresh() {
 async function initialize() {
   loadSavedState();
   syncUnitButtons();
-  renderRecentCities();
   resetAirQuality();
   setBusyState(false);
 
@@ -1210,7 +1165,7 @@ async function initialize() {
     }
   } catch {
     try {
-      await refreshByCity(DEFAULT_CITY, { saveRecent: false });
+      await refreshByCity(DEFAULT_CITY);
     } catch (fallbackError) {
       showError(fallbackError.message || "Unable to load weather.");
     }
@@ -1270,23 +1225,6 @@ refs.unitButtons.forEach((button) => {
   button.addEventListener("click", () => {
     setTemperatureUnit(button.dataset.unit);
   });
-});
-
-refs.recentCities.addEventListener("click", async (event) => {
-  hideSuggestions();
-  const target = event.target;
-  if (!(target instanceof HTMLElement)) {
-    return;
-  }
-  const chip = target.closest(".chip-btn");
-  if (!chip || !chip.dataset.city) {
-    return;
-  }
-  try {
-    await refreshByCity(chip.dataset.city, { saveRecent: true });
-  } catch (error) {
-    showError(error.message || "Could not load saved city.");
-  }
 });
 
 refs.cityInput.addEventListener("input", () => {
