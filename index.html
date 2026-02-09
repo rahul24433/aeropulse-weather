@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AeroPulse Weather</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-orb orb-a" aria-hidden="true"></div>
+    <div class="bg-orb orb-b" aria-hidden="true"></div>
+    <div class="bg-orb orb-c" aria-hidden="true"></div>
+
+    <div class="app-shell">
+      <header class="top-bar panel">
+        <div class="brand">
+          <p class="brand-kicker">AeroPulse</p>
+          <h1>Futuristic Weather Intelligence</h1>
+        </div>
+        <form id="search-form" class="search" autocomplete="off">
+          <label class="sr-only" for="city-input">Search city</label>
+          <input
+            id="city-input"
+            type="text"
+            placeholder="Search city or region"
+            aria-label="Search city"
+            required
+          />
+          <button id="search-btn" type="submit">Search</button>
+          <button id="location-btn" type="button">Use My Location</button>
+        </form>
+        <div class="status-row">
+          <span id="connection-pill" class="pill" data-state="loading" aria-live="polite">Initializing</span>
+          <span id="updated-at" class="updated-at" aria-live="polite">Waiting for first update</span>
+          <div class="status-actions">
+            <button id="refresh-btn" class="ghost-btn" type="button">Refresh</button>
+            <div class="unit-toggle" role="group" aria-label="Temperature unit">
+              <button
+                type="button"
+                class="unit-btn is-active"
+                data-unit-toggle
+                data-unit="C"
+                aria-pressed="true"
+              >
+                deg C
+              </button>
+              <button
+                type="button"
+                class="unit-btn"
+                data-unit-toggle
+                data-unit="F"
+                aria-pressed="false"
+              >
+                deg F
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="quick-cities">
+          <span class="quick-label">Recent searches</span>
+          <div id="recent-cities" class="chip-list" aria-live="polite"></div>
+        </div>
+      </header>
+
+      <main class="dashboard">
+        <section class="hero panel">
+          <div class="hero-copy">
+            <p class="eyebrow">Current Conditions</p>
+            <h2 id="location-name">Loading location</h2>
+            <p id="weather-summary" class="summary" aria-live="polite">Synchronizing weather stream</p>
+            <div class="temp-wrap">
+              <span id="temperature" class="temperature">--</span>
+              <span id="temperature-unit" class="degree-unit">deg C</span>
+            </div>
+            <div class="hero-meta">
+              <span id="feels-like">Feels like --</span>
+              <span id="sunrise">Sunrise --</span>
+              <span id="sunset">Sunset --</span>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <div id="weather-icon" class="weather-icon">SYNC</div>
+            <p class="visual-caption">Live atmospheric profile</p>
+          </div>
+        </section>
+
+        <section class="wind panel">
+          <div class="section-head">
+            <h3>Wind Intelligence</h3>
+            <span id="wind-category" class="section-note">Calculating</span>
+          </div>
+          <div class="wind-layout">
+            <div class="wind-dial">
+              <span class="dial-label north">N</span>
+              <span class="dial-label east">E</span>
+              <span class="dial-label south">S</span>
+              <span class="dial-label west">W</span>
+              <div id="wind-pointer" class="wind-pointer"></div>
+              <div class="dial-core"></div>
+            </div>
+            <div class="wind-readouts">
+              <div class="data-row">
+                <span>Speed</span>
+                <strong id="wind-speed">-- km/h</strong>
+              </div>
+              <div class="data-row">
+                <span>Direction</span>
+                <strong id="wind-direction">--</strong>
+              </div>
+              <div class="data-row">
+                <span>Gusts</span>
+                <strong id="wind-gust">-- km/h</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="metrics panel">
+          <div class="section-head">
+            <h3>Atmosphere</h3>
+            <span class="section-note">Precision telemetry</span>
+          </div>
+          <div class="metric-grid">
+            <article class="metric-card">
+              <span>Humidity</span>
+              <strong id="humidity">--%</strong>
+            </article>
+            <article class="metric-card">
+              <span>Pressure</span>
+              <strong id="pressure">-- hPa</strong>
+            </article>
+            <article class="metric-card">
+              <span>Visibility</span>
+              <strong id="visibility">-- km</strong>
+            </article>
+            <article class="metric-card">
+              <span>Precipitation</span>
+              <strong id="precipitation">-- mm</strong>
+            </article>
+            <article class="metric-card">
+              <span>Cloud Cover</span>
+              <strong id="cloud-cover">--%</strong>
+            </article>
+            <article class="metric-card">
+              <span>UV Index Max</span>
+              <strong id="uv-index">--</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="air panel">
+          <div class="section-head">
+            <h3>Air Quality</h3>
+            <span id="aqi-badge" class="section-note">AQI --</span>
+          </div>
+          <div class="air-grid">
+            <article class="metric-card">
+              <span>EU AQI</span>
+              <strong id="aqi-eu">--</strong>
+            </article>
+            <article class="metric-card">
+              <span>US AQI</span>
+              <strong id="aqi-us">--</strong>
+            </article>
+            <article class="metric-card">
+              <span>PM2.5</span>
+              <strong id="pm25">-- ug/m3</strong>
+            </article>
+            <article class="metric-card">
+              <span>PM10</span>
+              <strong id="pm10">-- ug/m3</strong>
+            </article>
+            <article class="metric-card">
+              <span>Ozone</span>
+              <strong id="ozone">-- ug/m3</strong>
+            </article>
+            <article class="metric-card">
+              <span>Carbon Monoxide</span>
+              <strong id="co">-- ug/m3</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="hourly panel">
+          <div class="section-head">
+            <h3>12-Hour Outlook</h3>
+            <span class="section-note">Temperature, wind and rain chance</span>
+          </div>
+          <div id="hourly-strip" class="hourly-strip"></div>
+        </section>
+
+        <section class="daily panel">
+          <div class="section-head">
+            <h3>14-Day Forecast</h3>
+            <span class="section-note">Daily high, low, wind peak and rain risk</span>
+          </div>
+          <div id="daily-grid" class="daily-grid"></div>
+        </section>
+      </main>
+
+      <footer class="credit-footer panel">
+        <p class="credit-line"><strong>AeroPulse</strong> built and maintained by Rahul Jha.</p>
+        <p class="credit-tagline">Forecasts that feel like the future.</p>
+      </footer>
+    </div>
+  </body>
+</html>
