@@ -3,6 +3,9 @@ const HOURLY_WINDOW = 12;
 const DAILY_WINDOW = 14;
 const RECENT_CITY_LIMIT = 6;
 const AUTO_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
+const SUGGESTION_MIN_CHARS = 2;
+const SUGGESTION_LIMIT = 8;
+const SUGGESTION_DEBOUNCE_MS = 260;
 
 const STORAGE_KEYS = {
   unit: "aeropulse_unit",
@@ -66,6 +69,7 @@ const refs = {
   searchButton: document.getElementById("search-btn"),
   locationButton: document.getElementById("location-btn"),
   refreshButton: document.getElementById("refresh-btn"),
+  suggestionList: document.getElementById("city-suggestions"),
   recentCities: document.getElementById("recent-cities"),
   unitButtons: Array.from(document.querySelectorAll("[data-unit-toggle]")),
   connectionPill: document.getElementById("connection-pill"),
@@ -109,8 +113,12 @@ const appState = {
   lastCoords: null,
   recentCities: [],
   activeRequestId: 0,
+  activeSuggestionRequestId: 0,
   isBusy: false,
   autoRefreshTimer: null,
+  suggestionTimer: null,
+  suggestions: [],
+  activeSuggestionIndex: -1,
 };
 
 function readStoredJson(key, fallback) {
@@ -158,6 +166,12 @@ function setBusyState(isBusy) {
   refs.recentCities.querySelectorAll(".chip-btn").forEach((button) => {
     button.disabled = isBusy;
   });
+  refs.suggestionList.querySelectorAll(".suggestion-btn").forEach((button) => {
+    button.disabled = isBusy;
+  });
+  if (isBusy) {
+    hideSuggestions();
+  }
 }
 
 function tempUnitLabel() {
@@ -433,29 +447,282 @@ function addRecentCity(city) {
 }
 
 async function geocodeCity(query) {
+  const normalizedQuery = normalizeCityText(query);
+  if (!normalizedQuery) {
+    throw new Error("Please enter a valid location.");
+  }
+
+  const openMeteoMatches = await fetchOpenMeteoLocations(normalizedQuery, 1);
+  if (openMeteoMatches.length) {
+    return openMeteoMatches[0];
+  }
+
+  const fallbackMatches = await fetchNominatimLocations(normalizedQuery, 1);
+  if (fallbackMatches.length) {
+    return fallbackMatches[0];
+  }
+
+  throw new Error("Location not found. Try nearby city or district.");
+}
+
+function toLocationResult(latitude, longitude, cityName, label) {
+  const parsedLatitude = Number(latitude);
+  const parsedLongitude = Number(longitude);
+  if (!Number.isFinite(parsedLatitude) || !Number.isFinite(parsedLongitude)) {
+    return null;
+  }
+  const normalizedName = normalizeCityText(cityName);
+  const normalizedLabel = normalizeCityText(label);
+  return {
+    latitude: parsedLatitude,
+    longitude: parsedLongitude,
+    cityName: normalizedName || normalizedLabel || "Unknown location",
+    label: normalizedLabel || normalizedName || "Unknown location",
+  };
+}
+
+function dedupeLocations(locations, maxCount = locations.length) {
+  const seen = new Set();
+  const deduped = [];
+  for (const location of locations) {
+    if (!location) {
+      continue;
+    }
+    const key = `${location.cityName.toLowerCase()}|${location.latitude.toFixed(3)}|${location.longitude.toFixed(3)}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    deduped.push(location);
+    if (deduped.length >= maxCount) {
+      break;
+    }
+  }
+  return deduped;
+}
+
+function getNominatimName(result, fallback) {
+  const address = result && result.address ? result.address : {};
+  const candidates = [
+    address.city,
+    address.town,
+    address.village,
+    address.hamlet,
+    address.municipality,
+    address.county,
+    address.state_district,
+    result && result.name,
+    fallback,
+  ];
+  for (const candidate of candidates) {
+    const normalized = normalizeCityText(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return "Unknown location";
+}
+
+async function fetchOpenMeteoLocations(query, count) {
   const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
   url.searchParams.set("name", query);
-  url.searchParams.set("count", "1");
+  url.searchParams.set("count", String(count));
   url.searchParams.set("language", "en");
   url.searchParams.set("format", "json");
 
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error("City lookup failed.");
+    return [];
   }
 
   const payload = await response.json();
-  const result = payload.results && payload.results[0];
-  if (!result) {
-    throw new Error("City not found.");
+  const results = Array.isArray(payload.results) ? payload.results : [];
+  return dedupeLocations(
+    results
+      .map((result) =>
+        toLocationResult(result.latitude, result.longitude, result.name || query, makeLocationLabel(result))
+      )
+      .filter(Boolean),
+    count
+  );
+}
+
+async function fetchNominatimLocations(query, limit) {
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("accept-language", "en");
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    return [];
   }
 
-  return {
-    latitude: result.latitude,
-    longitude: result.longitude,
-    cityName: result.name || query,
-    label: makeLocationLabel(result),
-  };
+  const payload = await response.json();
+  const results = Array.isArray(payload) ? payload : [];
+  return dedupeLocations(
+    results
+      .map((result) => {
+        const cityName = getNominatimName(result, query);
+        return toLocationResult(result.lat, result.lon, cityName, result.display_name || cityName);
+      })
+      .filter(Boolean),
+    limit
+  );
+}
+
+async function searchLocationSuggestions(query) {
+  const normalizedQuery = normalizeCityText(query);
+  if (normalizedQuery.length < SUGGESTION_MIN_CHARS) {
+    return [];
+  }
+
+  const openMeteoResults = await fetchOpenMeteoLocations(normalizedQuery, SUGGESTION_LIMIT);
+  if (openMeteoResults.length >= SUGGESTION_LIMIT || normalizedQuery.length < 3) {
+    return openMeteoResults.slice(0, SUGGESTION_LIMIT);
+  }
+
+  const fallbackResults = await fetchNominatimLocations(normalizedQuery, SUGGESTION_LIMIT);
+  return dedupeLocations([...openMeteoResults, ...fallbackResults], SUGGESTION_LIMIT);
+}
+
+function renderSuggestions(suggestions) {
+  appState.suggestions = suggestions;
+  appState.activeSuggestionIndex = -1;
+  refs.suggestionList.innerHTML = "";
+  refs.cityInput.removeAttribute("aria-activedescendant");
+
+  if (!suggestions.length) {
+    refs.suggestionList.hidden = true;
+    refs.cityInput.setAttribute("aria-expanded", "false");
+    return;
+  }
+
+  suggestions.forEach((suggestion, index) => {
+    const option = document.createElement("li");
+    option.className = "suggestion-item";
+    option.id = `city-suggestion-${index}`;
+    option.role = "option";
+    option.setAttribute("aria-selected", "false");
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "suggestion-btn";
+    button.dataset.suggestionIndex = String(index);
+    button.disabled = appState.isBusy;
+
+    const name = document.createElement("span");
+    name.className = "suggestion-name";
+    name.textContent = suggestion.cityName;
+
+    const meta = document.createElement("span");
+    meta.className = "suggestion-meta";
+    meta.textContent = suggestion.label;
+
+    button.append(name, meta);
+    option.append(button);
+    refs.suggestionList.append(option);
+  });
+
+  refs.suggestionList.hidden = false;
+  refs.cityInput.setAttribute("aria-expanded", "true");
+}
+
+function hideSuggestions(cancelPending = true) {
+  if (cancelPending) {
+    appState.activeSuggestionRequestId += 1;
+  }
+  if (appState.suggestionTimer) {
+    clearTimeout(appState.suggestionTimer);
+    appState.suggestionTimer = null;
+  }
+  appState.suggestions = [];
+  appState.activeSuggestionIndex = -1;
+  refs.suggestionList.innerHTML = "";
+  refs.suggestionList.hidden = true;
+  refs.cityInput.setAttribute("aria-expanded", "false");
+  refs.cityInput.removeAttribute("aria-activedescendant");
+}
+
+function setActiveSuggestion(index) {
+  if (!appState.suggestions.length) {
+    return;
+  }
+
+  let nextIndex = index;
+  if (nextIndex < 0) {
+    nextIndex = appState.suggestions.length - 1;
+  }
+  if (nextIndex >= appState.suggestions.length) {
+    nextIndex = 0;
+  }
+
+  appState.activeSuggestionIndex = nextIndex;
+  const options = refs.suggestionList.querySelectorAll(".suggestion-item");
+  options.forEach((option, optionIndex) => {
+    const active = optionIndex === nextIndex;
+    option.setAttribute("aria-selected", active ? "true" : "false");
+    const button = option.querySelector(".suggestion-btn");
+    if (button) {
+      button.classList.toggle("is-active", active);
+    }
+  });
+
+  const activeOption = options[nextIndex];
+  if (activeOption) {
+    refs.cityInput.setAttribute("aria-activedescendant", activeOption.id);
+    activeOption.scrollIntoView({ block: "nearest" });
+  }
+}
+
+function queueSuggestionLookup() {
+  const query = normalizeCityText(refs.cityInput.value);
+  if (appState.suggestionTimer) {
+    clearTimeout(appState.suggestionTimer);
+    appState.suggestionTimer = null;
+  }
+
+  if (appState.isBusy || query.length < SUGGESTION_MIN_CHARS) {
+    hideSuggestions();
+    return;
+  }
+
+  const requestId = ++appState.activeSuggestionRequestId;
+  appState.suggestionTimer = window.setTimeout(async () => {
+    try {
+      const suggestions = await searchLocationSuggestions(query);
+      if (requestId !== appState.activeSuggestionRequestId) {
+        return;
+      }
+      if (normalizeCityText(refs.cityInput.value) !== query) {
+        return;
+      }
+      renderSuggestions(suggestions);
+    } catch {
+      if (requestId === appState.activeSuggestionRequestId) {
+        hideSuggestions(false);
+      }
+    } finally {
+      if (requestId === appState.activeSuggestionRequestId) {
+        appState.suggestionTimer = null;
+      }
+    }
+  }, SUGGESTION_DEBOUNCE_MS);
+}
+
+async function selectSuggestionByIndex(index, options = {}) {
+  const suggestion = appState.suggestions[index];
+  if (!suggestion) {
+    return;
+  }
+  hideSuggestions();
+  refs.cityInput.value = suggestion.cityName;
+  await refreshByCity(suggestion.cityName, {
+    ...options,
+    location: suggestion,
+  });
 }
 
 async function reverseGeocode(latitude, longitude) {
@@ -859,8 +1126,18 @@ async function refreshByCity(cityInputValue, options = {}) {
   if (!city) {
     return;
   }
-  setStatus("loading", "Resolving location");
-  const location = await geocodeCity(city);
+
+  let location = options.location;
+  const hasProvidedLocation =
+    location &&
+    Number.isFinite(location.latitude) &&
+    Number.isFinite(location.longitude) &&
+    normalizeCityText(location.cityName);
+  if (!hasProvidedLocation) {
+    setStatus("loading", "Resolving location");
+    location = await geocodeCity(city);
+  }
+
   await refreshByCoordinates(location.latitude, location.longitude, location.label, {
     statusText: options.statusText || "Syncing weather",
     readyText: options.readyText || "Live stream",
@@ -948,14 +1225,28 @@ refs.searchForm.addEventListener("submit", async (event) => {
   if (!normalizeCityText(city)) {
     return;
   }
+
+  if (!refs.suggestionList.hidden && appState.suggestions.length) {
+    const selectedIndex =
+      appState.activeSuggestionIndex >= 0 ? appState.activeSuggestionIndex : 0;
+    try {
+      await selectSuggestionByIndex(selectedIndex);
+    } catch (error) {
+      showError(error.message || "Location lookup failed.");
+    }
+    return;
+  }
+
   try {
     await refreshByCity(city);
+    hideSuggestions();
   } catch (error) {
-    showError(error.message || "City lookup failed.");
+    showError(error.message || "Location lookup failed.");
   }
 });
 
 refs.locationButton.addEventListener("click", async () => {
+  hideSuggestions();
   try {
     await useCurrentLocation();
   } catch {
@@ -982,6 +1273,7 @@ refs.unitButtons.forEach((button) => {
 });
 
 refs.recentCities.addEventListener("click", async (event) => {
+  hideSuggestions();
   const target = event.target;
   if (!(target instanceof HTMLElement)) {
     return;
@@ -995,6 +1287,84 @@ refs.recentCities.addEventListener("click", async (event) => {
   } catch (error) {
     showError(error.message || "Could not load saved city.");
   }
+});
+
+refs.cityInput.addEventListener("input", () => {
+  queueSuggestionLookup();
+});
+
+refs.cityInput.addEventListener("focus", () => {
+  const query = normalizeCityText(refs.cityInput.value);
+  if (appState.suggestions.length && query.length >= SUGGESTION_MIN_CHARS) {
+    refs.suggestionList.hidden = false;
+    refs.cityInput.setAttribute("aria-expanded", "true");
+    return;
+  }
+  if (query.length >= SUGGESTION_MIN_CHARS) {
+    queueSuggestionLookup();
+  }
+});
+
+refs.cityInput.addEventListener("blur", () => {
+  window.setTimeout(() => {
+    hideSuggestions();
+  }, 110);
+});
+
+refs.cityInput.addEventListener("keydown", (event) => {
+  const hasVisibleSuggestions = !refs.suggestionList.hidden && appState.suggestions.length > 0;
+  if (!hasVisibleSuggestions) {
+    if (event.key === "Escape") {
+      hideSuggestions();
+    }
+    return;
+  }
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    setActiveSuggestion(appState.activeSuggestionIndex + 1);
+    return;
+  }
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    setActiveSuggestion(appState.activeSuggestionIndex - 1);
+    return;
+  }
+  if (event.key === "Enter") {
+    event.preventDefault();
+    const selectedIndex =
+      appState.activeSuggestionIndex >= 0 ? appState.activeSuggestionIndex : 0;
+    void selectSuggestionByIndex(selectedIndex).catch((error) => {
+      showError(error.message || "Location lookup failed.");
+    });
+    return;
+  }
+  if (event.key === "Escape") {
+    event.preventDefault();
+    hideSuggestions();
+  }
+});
+
+refs.suggestionList.addEventListener("mousedown", (event) => {
+  event.preventDefault();
+});
+
+refs.suggestionList.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+  const button = target.closest(".suggestion-btn");
+  if (!button || !button.dataset.suggestionIndex) {
+    return;
+  }
+  const index = Number(button.dataset.suggestionIndex);
+  if (!Number.isFinite(index)) {
+    return;
+  }
+  void selectSuggestionByIndex(index).catch((error) => {
+    showError(error.message || "Location lookup failed.");
+  });
 });
 
 window.addEventListener("online", () => {

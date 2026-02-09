@@ -27,13 +27,27 @@
         </div>
         <form id="search-form" class="search" autocomplete="off">
           <label class="sr-only" for="city-input">Search city</label>
-          <input
-            id="city-input"
-            type="text"
-            placeholder="Search city or region"
-            aria-label="Search city"
-            required
-          />
+          <div class="search-field">
+            <input
+              id="city-input"
+              type="text"
+              placeholder="Search city, town, or village"
+              aria-label="Search location"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded="false"
+              aria-controls="city-suggestions"
+              autocomplete="off"
+              required
+            />
+            <ul
+              id="city-suggestions"
+              class="suggestions"
+              role="listbox"
+              aria-label="Location suggestions"
+              hidden
+            ></ul>
+          </div>
           <button id="search-btn" type="submit">Search</button>
           <button id="location-btn" type="button">Use My Location</button>
         </form>

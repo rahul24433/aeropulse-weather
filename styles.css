@@ -154,11 +154,18 @@ body[data-tone="snow"] {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  align-items: flex-start;
+}
+
+.search-field {
+  position: relative;
+  flex: 1 1 260px;
+  min-width: 220px;
+  z-index: 60;
 }
 
 .search input {
-  flex: 1 1 260px;
-  min-width: 220px;
+  width: 100%;
   min-height: var(--tap-target);
   border: 1px solid rgba(172, 225, 242, 0.25);
   border-radius: 12px;
@@ -171,6 +178,59 @@ body[data-tone="snow"] {
 .search input:focus {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.suggestions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 80;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 12px;
+  border: 1px solid rgba(131, 210, 236, 0.34);
+  background: rgba(3, 20, 31, 0.96);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.35);
+  max-height: min(320px, 52vh);
+  overflow-y: auto;
+}
+
+.suggestion-item + .suggestion-item {
+  margin-top: 4px;
+}
+
+.suggestion-btn {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #d9f0fa;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+  transition: background 0.14s ease;
+}
+
+.suggestion-btn:hover,
+.suggestion-btn.is-active {
+  background: rgba(66, 193, 231, 0.2);
+}
+
+.suggestion-name {
+  font-family: "Sora", sans-serif;
+  font-size: 0.84rem;
+  line-height: 1.2;
+}
+
+.suggestion-meta {
+  color: var(--text-soft);
+  font-size: 0.74rem;
+  line-height: 1.2;
 }
 
 .search button {
@@ -212,7 +272,8 @@ body[data-tone="snow"] {
 .search input:focus-visible,
 .ghost-btn:focus-visible,
 .unit-btn:focus-visible,
-.chip-btn:focus-visible {
+.chip-btn:focus-visible,
+.suggestion-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -893,8 +954,12 @@ body[data-tone="snow"] {
 
   .search input {
     min-width: 0;
-    flex: 1 1 100%;
     font-size: 16px;
+  }
+
+  .search-field {
+    flex: 1 1 100%;
+    min-width: 0;
   }
 
   .search button {
@@ -1008,6 +1073,10 @@ body[data-tone="snow"] {
 
   .hourly-strip {
     grid-auto-columns: minmax(132px, 1fr);
+  }
+
+  .suggestions {
+    max-height: min(280px, 48vh);
   }
 
   .daily-grid {
