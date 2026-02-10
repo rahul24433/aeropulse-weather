@@ -4,6 +4,13 @@ A futuristic, responsive weather dashboard built with plain HTML, CSS, and JavaS
 
 It shows live weather, wind intelligence, air quality, a 12-hour outlook, and a 14-day forecast with a polished UI designed for desktop, tablet, and mobile.
 
+## Maintainer
+
+- Rahul Jha
+- GitHub: https://github.com/rahul24433
+- Portfolio: https://rahul24433.github.io/
+- LinkedIn: https://www.linkedin.com/in/rahul-kumar-jha-5bb025191/
+
 ## Features
 
 - Current weather conditions (temperature, feels-like, humidity, pressure, visibility, precipitation, cloud cover, UV index)
@@ -92,4 +99,3 @@ In `script.js`, you can tune:
 - Internet is required (all weather/air data is fetched live).
 - Geolocation requires browser permission and works best on secure contexts (`https` or `localhost`).
 - Air quality values may be unavailable for some locations/times.
-
