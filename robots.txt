@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://rahul24433.github.io/aeropulse-weather/sitemap.xml
