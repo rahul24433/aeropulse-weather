@@ -310,19 +310,50 @@ function weatherInfo(code) {
   return WEATHER_DETAILS[code] || { label: "Unknown", icon: "DATA", tone: "clouds" };
 }
 
+function toDateTimeSortValue(isoText) {
+  const parts = parseIsoDateTime(isoText);
+  if (!parts) {
+    return null;
+  }
+  return (
+    parts.year * 100000000 +
+    parts.month * 1000000 +
+    parts.day * 10000 +
+    parts.hour * 100 +
+    parts.minute
+  );
+}
+
 function pickHourlyStart(times, currentTime) {
   if (!Array.isArray(times) || times.length === 0) {
     return 0;
   }
-  const exactIndex = times.indexOf(currentTime);
+  const exactIndex = typeof currentTime === "string" ? times.indexOf(currentTime) : -1;
   if (exactIndex >= 0) {
     return exactIndex;
   }
 
-  const nowMs = Date.now();
+  const currentSortValue = toDateTimeSortValue(currentTime);
+  if (Number.isFinite(currentSortValue)) {
+    for (let i = 0; i < times.length; i += 1) {
+      const slotSortValue = toDateTimeSortValue(times[i]);
+      if (Number.isFinite(slotSortValue) && slotSortValue >= currentSortValue) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
+  const now = new Date();
+  const nowSortValue =
+    now.getFullYear() * 100000000 +
+    (now.getMonth() + 1) * 1000000 +
+    now.getDate() * 10000 +
+    now.getHours() * 100 +
+    now.getMinutes();
   for (let i = 0; i < times.length; i += 1) {
-    const slotTime = Date.parse(times[i]);
-    if (Number.isFinite(slotTime) && slotTime >= nowMs) {
+    const slotSortValue = toDateTimeSortValue(times[i]);
+    if (Number.isFinite(slotSortValue) && slotSortValue >= nowSortValue) {
       return i;
     }
   }
@@ -1030,8 +1061,11 @@ async function refreshByCoordinates(latitude, longitude, labelHint, options = {}
     }
 
     let resolvedLabel = normalizeCityText(labelHint);
-    if (!resolvedLabel) {
-      resolvedLabel = (await reverseGeocode(latitude, longitude)) || "Unknown location";
+    const shouldResolveLabel =
+      !resolvedLabel || resolvedLabel.toLowerCase() === "my location";
+    if (shouldResolveLabel) {
+      resolvedLabel =
+        (await reverseGeocode(latitude, longitude)) || resolvedLabel || "Unknown location";
     }
 
     if (requestId !== appState.activeRequestId) {
@@ -1123,7 +1157,7 @@ async function useCurrentLocation() {
   setStatus("loading", "Detecting your location");
   const position = await getDevicePosition();
   const { latitude, longitude } = position.coords;
-  await refreshByCoordinates(latitude, longitude, appState.locationLabel || "My Location", {
+  await refreshByCoordinates(latitude, longitude, "My Location", {
     statusText: "Syncing local weather",
     readyText: "Live stream",
   });

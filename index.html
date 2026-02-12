@@ -4,9 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AeroPulse Weather | Live Forecast, Air Quality, and Wind</title>
+    <meta name="application-name" content="AeroPulse Weather" />
+    <meta name="author" content="Rahul Jha" />
     <meta
       name="description"
-      content="AeroPulse Weather is a fast weather dashboard with live temperature, wind intelligence, air quality, hourly outlook, and 14-day forecast."
+      content="AeroPulse Weather delivers live local weather, a 12-hour outlook, 14-day forecast, wind intelligence, and air quality with fast city search and one-tap geolocation."
     />
     <meta name="robots" content="index,follow,max-image-preview:large" />
     <link rel="canonical" href="https://rahul24433.github.io/aeropulse-weather/" />
@@ -15,14 +17,14 @@
     <meta property="og:title" content="AeroPulse Weather" />
     <meta
       property="og:description"
-      content="Live forecast, wind intelligence, air quality, hourly outlook, and a 14-day weather view."
+      content="Live local weather, wind intelligence, air quality, a 12-hour outlook, and a 14-day forecast in one fast dashboard."
     />
     <meta property="og:url" content="https://rahul24433.github.io/aeropulse-weather/" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="AeroPulse Weather" />
     <meta
       name="twitter:description"
-      content="Live forecast, wind intelligence, air quality, hourly outlook, and a 14-day weather view."
+      content="Live local weather, wind intelligence, air quality, a 12-hour outlook, and a 14-day forecast in one fast dashboard."
     />
     <meta name="theme-color" content="#0f172a" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -35,12 +37,36 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "AeroPulse Weather",
-        "url": "https://rahul24433.github.io/aeropulse-weather/",
-        "applicationCategory": "WeatherApplication",
-        "operatingSystem": "Web Browser",
-        "description": "Weather dashboard with live conditions, wind intelligence, air quality, and short and long-range forecasts."
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://rahul24433.github.io/aeropulse-weather/#website",
+            "url": "https://rahul24433.github.io/aeropulse-weather/",
+            "name": "AeroPulse Weather",
+            "description": "Live local weather, wind intelligence, air quality, a 12-hour outlook, and a 14-day forecast in one fast dashboard.",
+            "inLanguage": "en",
+            "publisher": {
+              "@type": "Person",
+              "name": "Rahul Jha",
+              "url": "https://github.com/rahul24433"
+            }
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://rahul24433.github.io/aeropulse-weather/#webapp",
+            "name": "AeroPulse Weather",
+            "url": "https://rahul24433.github.io/aeropulse-weather/",
+            "applicationCategory": "WeatherApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Weather dashboard with live conditions, wind intelligence, air quality, and short and long-range forecasts.",
+            "isAccessibleForFree": true,
+            "creator": {
+              "@type": "Person",
+              "name": "Rahul Jha",
+              "url": "https://github.com/rahul24433"
+            }
+          }
+        ]
       }
     </script>
     <script src="script.js" defer></script>
