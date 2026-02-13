@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="AeroPulse Weather">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#071523" />
+      <stop offset="1" stop-color="#0f3651" />
+    </linearGradient>
+    <linearGradient id="sun" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f7de71" />
+      <stop offset="1" stop-color="#ff8f54" />
+    </linearGradient>
+    <linearGradient id="cloud" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#a7d9ec" />
+      <stop offset="1" stop-color="#8fc2d8" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="26" fill="url(#bg)" />
+  <circle cx="43" cy="47" r="20" fill="url(#sun)" />
+  <path
+    d="M78 88H41c-10 0-18-8-18-18 0-9 7-17 16-18 2-12 13-20 25-20 13 0 24 9 26 22 8 1 15 8 15 17 0 10-8 17-17 17Z"
+    fill="url(#cloud)"
+  />
+  <path
+    d="M37 97h34c6 0 11-5 11-11v-2H37c-6 0-11 5-11 11v2h11Z"
+    fill="#61bedf"
+    opacity="0.65"
+  />
+</svg>

@@ -5,14 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AeroPulse Weather | Live Forecast, Air Quality, and Wind</title>
     <meta name="application-name" content="AeroPulse Weather" />
+    <meta name="apple-mobile-web-app-title" content="AeroPulse Weather" />
     <meta name="author" content="Rahul Jha" />
+    <meta
+      name="keywords"
+      content="weather dashboard, live weather, air quality, wind forecast, 12 hour forecast, 14 day forecast"
+    />
     <meta
       name="description"
       content="AeroPulse Weather delivers live local weather, a 12-hour outlook, 14-day forecast, wind intelligence, and air quality with fast city search and one-tap geolocation."
     />
     <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta name="googlebot" content="index,follow,max-image-preview:large" />
     <link rel="canonical" href="https://rahul24433.github.io/aeropulse-weather/" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="site.webmanifest" />
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:site_name" content="AeroPulse Weather" />
     <meta property="og:title" content="AeroPulse Weather" />
     <meta
@@ -20,12 +30,16 @@
       content="Live local weather, wind intelligence, air quality, a 12-hour outlook, and a 14-day forecast in one fast dashboard."
     />
     <meta property="og:url" content="https://rahul24433.github.io/aeropulse-weather/" />
+    <meta property="og:image" content="https://rahul24433.github.io/aeropulse-weather/aeropulse-social.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="AeroPulse Weather" />
     <meta
       name="twitter:description"
       content="Live local weather, wind intelligence, air quality, a 12-hour outlook, and a 14-day forecast in one fast dashboard."
     />
+    <meta name="twitter:image" content="https://rahul24433.github.io/aeropulse-weather/aeropulse-social.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -38,27 +52,63 @@
         "@context": "https://schema.org",
         "@graph": [
           {
+            "@type": "Organization",
+            "@id": "https://rahul24433.github.io/aeropulse-weather/#organization",
+            "name": "AeroPulse Weather",
+            "url": "https://rahul24433.github.io/aeropulse-weather/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://rahul24433.github.io/aeropulse-weather/favicon.svg"
+            },
+            "sameAs": ["https://github.com/rahul24433"]
+          },
+          {
             "@type": "WebSite",
             "@id": "https://rahul24433.github.io/aeropulse-weather/#website",
             "url": "https://rahul24433.github.io/aeropulse-weather/",
             "name": "AeroPulse Weather",
+            "alternateName": "AeroPulse Weather Dashboard",
             "description": "Live local weather, wind intelligence, air quality, a 12-hour outlook, and a 14-day forecast in one fast dashboard.",
-            "inLanguage": "en",
+            "inLanguage": "en-US",
             "publisher": {
-              "@type": "Person",
-              "name": "Rahul Jha",
-              "url": "https://github.com/rahul24433"
+              "@id": "https://rahul24433.github.io/aeropulse-weather/#organization"
             }
           },
           {
-            "@type": "WebApplication",
-            "@id": "https://rahul24433.github.io/aeropulse-weather/#webapp",
+            "@type": "WebPage",
+            "@id": "https://rahul24433.github.io/aeropulse-weather/#webpage",
+            "url": "https://rahul24433.github.io/aeropulse-weather/",
+            "name": "AeroPulse Weather | Live Forecast, Air Quality, and Wind",
+            "description": "Live local weather, wind intelligence, air quality, a 12-hour outlook, and a 14-day forecast in one fast dashboard.",
+            "isPartOf": {
+              "@id": "https://rahul24433.github.io/aeropulse-weather/#website"
+            },
+            "about": {
+              "@id": "https://rahul24433.github.io/aeropulse-weather/#app"
+            },
+            "inLanguage": "en-US"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://rahul24433.github.io/aeropulse-weather/#app",
             "name": "AeroPulse Weather",
             "url": "https://rahul24433.github.io/aeropulse-weather/",
             "applicationCategory": "WeatherApplication",
-            "operatingSystem": "Web Browser",
+            "operatingSystem": "Any",
             "description": "Weather dashboard with live conditions, wind intelligence, air quality, and short and long-range forecasts.",
             "isAccessibleForFree": true,
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "featureList": [
+              "Live weather conditions",
+              "12-hour outlook",
+              "14-day forecast",
+              "Wind intelligence",
+              "Air quality tracking"
+            ],
             "creator": {
               "@type": "Person",
               "name": "Rahul Jha",
@@ -80,7 +130,8 @@
       <header class="top-bar panel">
         <div class="brand">
           <p class="brand-kicker">AeroPulse</p>
-          <h1>Futuristic Weather Intelligence</h1>
+          <h1>AeroPulse Weather Dashboard</h1>
+          <p class="brand-subtitle">Live forecast, wind intelligence, and air quality in one place.</p>
         </div>
         <form id="search-form" class="search" autocomplete="off">
           <label class="sr-only" for="city-input">Search city</label>
@@ -276,6 +327,14 @@
           <div id="daily-grid" class="daily-grid"></div>
         </section>
       </main>
+
+      <section class="seo-panel panel" aria-labelledby="about-aeropulse">
+        <h2 id="about-aeropulse">About AeroPulse Weather</h2>
+        <p>
+          AeroPulse Weather is a live weather dashboard for city-level conditions, wind speed and direction,
+          12-hour outlook, 14-day forecast, and air quality tracking with fast search and geolocation support.
+        </p>
+      </section>
 
       <footer class="credit-footer panel">
         <p class="credit-line"><strong>AeroPulse</strong> built and maintained by Rahul Jha.</p>

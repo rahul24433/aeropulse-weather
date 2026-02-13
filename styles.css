@@ -150,6 +150,13 @@ body[data-tone="snow"] {
   font-weight: 700;
 }
 
+.brand-subtitle {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
 .search {
   display: flex;
   flex-wrap: wrap;
@@ -784,6 +791,27 @@ body[data-tone="snow"] {
   color: var(--text-soft);
 }
 
+.seo-panel {
+  margin-top: 14px;
+  padding: 16px 20px;
+  display: grid;
+  gap: 8px;
+}
+
+.seo-panel h2 {
+  margin: 0;
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  color: #e6f8ff;
+}
+
+.seo-panel p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -984,6 +1012,10 @@ body[data-tone="snow"] {
   .credit-footer {
     justify-content: center;
     text-align: center;
+    padding: 14px 16px;
+  }
+
+  .seo-panel {
     padding: 14px 16px;
   }
 }
